@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<!DOCTYPE configuration
+        PUBLIC "-//mybatis.org//DTD Config 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-config.dtd" >
+<configuration>
+
+    <settings>
+        <!--配置关闭缓存-->
+        <setting name="cacheEnabled" value="false"/>
+        <!--配置开启驼峰-->
+        <setting name="mapUnderscoreToCamelCase" value="true"/>
+        <!--插入数据的时候比较有用-->
+        <setting name="useGeneratedKeys" value="true"/>
+        <!--提高性能-->
+        <setting name="defaultExecutorType" value="REUSE"/>
+        <!--事务的执行时间，当时间超过将会自动关闭-->
+        <setting name="defaultStatementTimeout" value="600"/>
+    </settings>
+
+
+    <!--配置别名，这样在配置mapper映射文件时可以更方便-->
+    <typeAliases>
+        <typeAlias type="com.hzu.recruit.common.model.User" alias="user"/>
+        <typeAlias type="com.hzu.recruit.common.model.Project" alias="project"/>
+        <typeAlias type="com.hzu.recruit.common.model.Area" alias="area"/>
+        <typeAlias type="com.hzu.recruit.common.model.ProjectUser" alias="projectUser"/>
+        <typeAlias type="com.hzu.recruit.common.model.City" alias="city"/>
+        <typeAlias type="com.hzu.recruit.common.model.Company" alias="company"/>
+    </typeAliases>
+
+    <mappers>
+        <mapper resource="mapper/user.xml"/>
+        <mapper resource="mapper/project.xml"/>
+        <mapper resource="mapper/agency.xml"/>
+    </mappers>
+
+</configuration>

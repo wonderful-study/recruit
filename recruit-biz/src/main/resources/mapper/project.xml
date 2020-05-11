@@ -1,0 +1,258 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+
+<mapper namespace="com.hzu.recruit.biz.mapper.ProjectMapper">
+
+    <sql id="projectFiled">
+        a.id,
+        a.type,
+        a.name,
+        a.price,
+        a.images,
+        a.recruitment,
+        a.degree,
+        a.language,
+        a.rating,
+        a.remarks,
+        a.properties,
+        a.tags,
+        a.create_time,
+        a.city_id,
+        a.area_id,
+        a.address,
+        a.state
+    </sql>
+
+    <resultMap id="BaseResultMap" type="project">
+        <id column="id" jdbcType="BIGINT" property="id"/>
+        <result column="type" jdbcType="BIT" property="type"/>
+        <result column="name" jdbcType="VARCHAR" property="name"/>
+        <result column="price" jdbcType="INTEGER" property="price"/>
+        <result column="images" jdbcType="VARCHAR" property="images"/>
+        <result column="recruitment" jdbcType="INTEGER" property="recruitment"/>
+        <result column="degree" jdbcType="VARCHAR" property="degree"/>
+        <result column="language" jdbcType="VARCHAR" property="language"/>
+        <result column="rating" jdbcType="DOUBLE" property="rating"/>
+        <result column="remarks" jdbcType="VARCHAR" property="remarks"/>
+        <result column="properties" jdbcType="VARCHAR" property="properties"/>
+        <result column="tags" jdbcType="VARCHAR" property="tags"/>
+        <result column="create_time" jdbcType="TIMESTAMP" property="createTime"/>
+        <result column="city_id" jdbcType="INTEGER" property="cityId"/>
+        <result column="area_id" jdbcType="INTEGER" property="areaId"/>
+        <result column="address" jdbcType="VARCHAR" property="address"/>
+        <result column="state" jdbcType="BIT" property="state"/>
+    </resultMap>
+
+    <select id="selectPageProjects" resultMap="BaseResultMap">
+        SELECT <include refid="projectFiled"></include>
+        FROM project a
+        <include refid="projectCondition"></include>
+        <choose>
+            <when test="project.sort != null and project.sort == 'price_asc'">
+                ORDER by a.price ASC
+            </when>
+            <when test="project.sort != null and project.sort == 'price_desc'">
+                ORDER by a.price DESC
+            </when>
+            <otherwise>
+                ORDER by a.create_time desc
+            </otherwise>
+        </choose>
+        <if test="pageParams.offset != null and pageParams.limit != null">
+            limit #{pageParams.offset},#{pageParams.limit}
+        </if>
+        <if test="pageParams.offset == null and pageParams.limit != null">
+            limit #{pageParams.limit}
+        </if>
+    </select>
+
+    <sql id="projectCondition">
+        <!--表关联-->
+        <if test="project.userId != null and project.userId != 0">
+            INNER JOIN (SELECT project_id,user_id FROM project_user
+                        <where>
+                            user_id = #{project.userId}
+                            <if test="project.bookmarked != null and project.bookmarked == true">
+                                and type = 2
+                            </if>
+                            <if test="project.bookmarked != null and project.bookmarked == false">
+                                and type = 1
+                            </if>
+                        </where>
+                        )b
+            on a.id = b.project_id
+
+        </if>
+        <where>
+            <if test="project.id != null and project.id != 0">
+                AND a.id = #{project.id}
+            </if>
+            <if test="project.type != null">
+                AND a.type = #{project.type}
+            </if>
+            <if test="project.name != null and project.name != ''">
+                <bind name="pattern1" value=" '%' + project.name + '%' " />
+                and a.name LIKE #{pattern1}
+            </if>
+            <if test="project.ids">
+                and a.id IN
+                <foreach collection="project.ids" item="item" index="index" open="(" close=")" separator=",">
+                  #{item}
+                </foreach>
+            </if>
+        </where>
+    </sql>
+
+    <select id="selectPageCount" resultType="long">
+        SELECT count(id)
+        FROM project a
+        <include refid="projectCondition"></include>
+    </select>
+
+    <select id="selectArea" resultType="area">
+        SELECT * FROM area
+
+        <where>
+            <if test="id != null and id != 0">
+                AND id = #{id}
+            </if>
+            <if test="name != null and name != ''">
+                AND name = #{name}
+            </if>
+            <if test="cityId != null and cityId != 0">
+                AND city_id = #{cityId}
+            </if>
+        </where>
+    </select>
+
+
+    <select id="selectCity" resultType="city">
+        SELECT * FROM city
+
+        <where>
+            <if test="id != null and id != 0">
+                AND id = #{id}
+            </if>
+            <if test="cityName != null and cityName != ''">
+                AND city_name = #{cityName}
+            </if>
+        </where>
+    </select>
+
+    <insert id="insertUserMsg">
+        INSERT INTO project_msg (
+                                msg,
+                                create_time,
+                                user_name,
+                                project_id,
+                                agent_id,
+                                email
+                                )
+                                VALUE(
+                                #{msg},
+                                #{createTime},
+                                #{userName},
+                                #{projectId},
+                                #{agentId},
+                                #{email}
+                                )
+    </insert>
+
+    <select id="selectProjectUser" resultType="projectUser">
+        SELECT id,project_id,user_id,create_time,type
+        FROM project_user
+        WHERE
+        project_id = #{projectId} and user_id = #{userId} and type = #{type}
+    </select>
+
+    <select id="selectSaleProjectUser" resultType="projectUser">
+       SELECT id,project_id,user_id,create_time,type
+       FROM project_user
+       WHERE project_id = #{projectId} and type = 1
+       limit 1
+    </select>
+
+    <select id="selectProjectIdByUserId" resultType="long">
+        SELECT project_id
+        FROM project_user
+        WHERE user_id = #{userId} and type = 1
+    </select>
+
+    <select id="selectProjectUserByProjectId" resultType="projectUser">
+        SELECT id,project_id,user_id,create_time,type
+        FROM project_user
+        WHERE project_id = #{id}
+    </select>
+
+
+    <!--keyProperty:把新生成的id返回到属性id上，这样就能查询后就获得id了-->
+    <insert id="insertProject" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO project(type,
+                            name,
+                            price,
+                            images,
+                            recruitment,
+                            degree,
+                            language,
+                            rating,
+                            remarks,
+                            properties,
+                            tags,
+                            create_time,
+                            city_id,
+                            area_id,
+                            address,
+                            state
+                            )
+                            VALUE (
+                            #{type},
+                            #{name},
+                            #{price},
+                            #{images},
+                            #{recruitment},
+                            #{degree},
+                            #{language},
+                            #{rating},
+                            #{remarks},
+                            #{properties},
+                            #{tags},
+                            #{createTime},
+                            #{cityId},
+                            #{areaId},
+                            #{address},
+                            #{state}
+                            )
+    </insert>
+
+
+    <insert id="insertProjectUser">
+        INSERT INTO project_user (project_id,user_id,create_time,type)
+                            VALUE (#{projectId},#{userId},#{createTime},#{type})
+    </insert>
+
+
+    <update id="updateProjectRating">
+       UPDATE project
+       set rating = #{rating}
+       WHERE id = #{id}
+
+    </update>
+
+
+    <delete id="deleteProjectUser">
+        DELETE FROM project_user
+        WHERE project_id = #{id} and user_id = #{userId} and type = #{type}
+    </delete>
+
+    <delete id="deleteProjectById">
+        DELETE FROM project
+        WHERE id = #{id}
+    </delete>
+
+    <delete id="deleteProjectUserByProjectId">
+        DELETE FROM project_user
+        WHERE project_id = #{projectId}
+    </delete>
+
+</mapper>
